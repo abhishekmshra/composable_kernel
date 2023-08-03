@@ -36,6 +36,7 @@ struct BlockwiseGemmWMMA_k0mk1_k0nk1_m0m1m2n0n1n2m3_CShuffle
     static constexpr auto I3    = Number<3>{};
     static constexpr auto I4    = Number<4>{};
     static constexpr auto WmmaK = Number<16>{};
+    static constexpr auto gfx12WmmaK = Number<32>{};
 
     using ThisThreadBlock = ThisThreadBlock<BlockSize>;
 
@@ -221,11 +222,11 @@ struct BlockwiseGemmWMMA_k0mk1_k0nk1_m0m1m2n0n1n2m3_CShuffle
         auto b_thread_buf = make_static_buffer<AddressSpaceEnum::Vgpr, FloatB>(
             b_thread_desc_.GetElementSpaceSize());
 
-        static_for<0, KPerBlock / WmmaK, 1>{}([&](auto k) { // k=0,1,2 instead of k=0,kpack*1, ...
+        static_for<0, KPerBlock / gfx12WmmaK, 1>{}([&](auto k) { // k=0,1,2 instead of k=0,kpack*1, ...
             static_for<0, MRepeat, 1>{}([&](auto m0) {
                 // read A
                 a_thread_copy_.Run(a_block_desc_k0_m0_m1_m2_k1,
-                                   make_tuple(Number<k * WmmaK / A_K1>{}, m0, I0, I0, I0),
+                                   make_tuple(Number<k * gfx12WmmaK / A_K1>{}, m0, I0, I0, I0),
                                    a_block_buf,
                                    a_thread_desc_,
                                    make_tuple(I0, m0, I0, I0, I0),
@@ -234,7 +235,7 @@ struct BlockwiseGemmWMMA_k0mk1_k0nk1_m0m1m2n0n1n2m3_CShuffle
                 static_for<0, NRepeat, 1>{}([&](auto n0) {
                     // read B
                     b_thread_copy_.Run(b_block_desc_k0_n0_n1_n2_k1,
-                                       make_tuple(Number<k * WmmaK / B_K1>{}, n0, I0, I0, I0),
+                                       make_tuple(Number<k * gfx12WmmaK / B_K1>{}, n0, I0, I0, I0),
                                        b_block_buf,
                                        b_thread_desc_,
                                        make_tuple(I0, n0, I0, I0, I0),
